@@ -17,7 +17,10 @@ export default function Player() {
     // Animate shield
     if (shieldRef.current && playerShield > 0) {
       shieldRef.current.rotation.y += 0.02;
-      shieldRef.current.material.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 4) * 0.2;
+      const material = shieldRef.current.material as THREE.MeshStandardMaterial;
+      if (material) {
+        material.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 4) * 0.2;
+      }
     }
   });
 

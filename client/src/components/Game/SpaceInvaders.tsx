@@ -19,14 +19,14 @@ import Bullet from "./Bullet";
 import PowerUp from "./PowerUp";
 import ParticleSystem from "./ParticleSystem";
 
-type Controls = {
-  left: boolean;
-  right: boolean;
-  up: boolean;
-  down: boolean;
-  shoot: boolean;
-  pause: boolean;
-};
+enum Controls {
+  left = "left",
+  right = "right",
+  up = "up",
+  down = "down",
+  shoot = "shoot",
+  pause = "pause"
+}
 
 export default function SpaceInvaders() {
   const { 
