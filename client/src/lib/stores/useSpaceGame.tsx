@@ -6,12 +6,14 @@ export type GameState = "menu" | "playing" | "paused" | "gameOver";
 export interface Enemy {
   id: string;
   position: [number, number, number];
-  type: 'basic' | 'fast' | 'tank' | 'boss';
+  type: 'basic' | 'fast' | 'tank' | 'boss' | 'bossShield' | 'bossRapid' | 'bossTank';
   health: number;
   maxHealth: number;
   speed: number;
   lastShot: number;
   direction: number;
+  bossPhase?: number;
+  shieldActive?: boolean;
 }
 
 export interface Bullet {

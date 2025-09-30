@@ -131,15 +131,70 @@ export default function SpaceInvaders() {
         newEnemy.position[1] -= 0.3; // Move down
       }
       
-      // Enemy shooting
-      if (Math.random() < 0.001 && now - newEnemy.lastShot > 1000) {
-        addBullet({
-          id: `enemy-bullet-${now}-${newEnemy.id}`,
-          position: [newEnemy.position[0], newEnemy.position[1] - 0.5, newEnemy.position[2]],
-          velocity: [0, -0.15, 0],
-          isPlayerBullet: false,
-          damage: 20
-        });
+      // Boss phase transitions
+      if (newEnemy.type.startsWith('boss') && newEnemy.bossPhase) {
+        const healthPercent = newEnemy.health / newEnemy.maxHealth;
+        
+        // Progressive phase transitions - always go through each phase sequentially
+        if (healthPercent < 0.6 && newEnemy.bossPhase === 1) {
+          newEnemy.bossPhase = 2;
+          newEnemy.speed *= 1.2;
+        } else if (healthPercent < 0.3 && newEnemy.bossPhase === 2) {
+          newEnemy.bossPhase = 3;
+          newEnemy.speed *= 1.3;
+        }
+        
+        // Boss shield regeneration with cooldown
+        if (newEnemy.type === 'bossShield' && healthPercent < 0.5 && !newEnemy.shieldActive) {
+          // Only regenerate shield if enough time has passed (5 seconds cooldown)
+          const shieldBreakTime = (newEnemy as any).shieldBreakTime || 0;
+          if (now - shieldBreakTime > 5000) {
+            newEnemy.shieldActive = true;
+          }
+        }
+      }
+      
+      // Enemy shooting with boss special patterns
+      const isBoss = newEnemy.type.startsWith('boss');
+      const shootChance = isBoss ? 0.003 : 0.001;
+      const shootDelay = isBoss ? 500 : 1000;
+      
+      if (Math.random() < shootChance && now - newEnemy.lastShot > shootDelay) {
+        // Boss Rapid fires multiple bullets
+        if (newEnemy.type === 'bossRapid') {
+          for (let i = -1; i <= 1; i++) {
+            addBullet({
+              id: `enemy-bullet-${now}-${newEnemy.id}-${i}`,
+              position: [newEnemy.position[0] + i * 0.4, newEnemy.position[1] - 0.5, newEnemy.position[2]],
+              velocity: [i * 0.05, -0.18, 0],
+              isPlayerBullet: false,
+              damage: 15
+            });
+          }
+        } 
+        // Boss Tank fires spread pattern
+        else if (newEnemy.type === 'bossTank') {
+          for (let angle = -30; angle <= 30; angle += 30) {
+            const rad = (angle * Math.PI) / 180;
+            addBullet({
+              id: `enemy-bullet-${now}-${newEnemy.id}-${angle}`,
+              position: [newEnemy.position[0], newEnemy.position[1] - 0.5, newEnemy.position[2]],
+              velocity: [Math.sin(rad) * 0.15, -Math.cos(rad) * 0.15, 0],
+              isPlayerBullet: false,
+              damage: 25
+            });
+          }
+        }
+        // Other enemies fire normally
+        else {
+          addBullet({
+            id: `enemy-bullet-${now}-${newEnemy.id}`,
+            position: [newEnemy.position[0], newEnemy.position[1] - 0.5, newEnemy.position[2]],
+            velocity: [0, -0.15, 0],
+            isPlayerBullet: false,
+            damage: isBoss ? 30 : 20
+          });
+        }
         newEnemy.lastShot = now;
       }
       
@@ -157,18 +212,43 @@ export default function SpaceInvaders() {
           // Hit enemy
           removeBullet(bullet.id);
           
-          const newHealth = enemy.health - bullet.damage;
+          // Handle shield for boss shield
+          let actualDamage = bullet.damage;
+          if (enemy.type === 'bossShield' && enemy.shieldActive) {
+            actualDamage = bullet.damage * 0.2; // Shield reduces damage
+            if (Math.random() < 0.3) {
+              // Shield might break
+              const enemyIndex = updatedEnemies.findIndex(e => e.id === enemy.id);
+              if (enemyIndex !== -1) {
+                updatedEnemies[enemyIndex].shieldActive = false;
+                (updatedEnemies[enemyIndex] as any).shieldBreakTime = now; // Track when shield broke
+              }
+            }
+          }
+          
+          const newHealth = enemy.health - actualDamage;
           if (newHealth <= 0) {
             // Enemy destroyed
             removeEnemy(enemy.id);
-            addScore(enemy.type === 'boss' ? 500 : enemy.type === 'tank' ? 50 : enemy.type === 'fast' ? 20 : 10);
+            
+            // Score based on enemy type
+            let score = 10;
+            if (enemy.type === 'fast') score = 20;
+            else if (enemy.type === 'tank') score = 50;
+            else if (enemy.type === 'boss') score = 500;
+            else if (enemy.type === 'bossShield') score = 800;
+            else if (enemy.type === 'bossRapid') score = 700;
+            else if (enemy.type === 'bossTank') score = 1000;
+            
+            addScore(score);
             playHit();
             
             // Create explosion particles
+            const isBoss = enemy.type.startsWith('boss');
             const explosionParticles = createExplosionParticles(
               enemy.position,
-              enemy.type === 'boss' ? 25 : 15,
-              enemy.type === 'boss' ? '#ff6666' : '#ff4444'
+              isBoss ? 30 : 15,
+              isBoss ? '#ff6666' : '#ff4444'
             );
             addParticles(explosionParticles);
             
