@@ -14,8 +14,11 @@ export default function GameUI() {
     playerHealth,
     playerMaxHealth,
     playerShield,
+    weaponLevel,
     rapidFireUntil,
     multiShotUntil,
+    laserUntil,
+    timeSlowUntil,
     pauseGame,
     resumeGame,
     restartGame,
@@ -28,6 +31,8 @@ export default function GameUI() {
   const now = Date.now();
   const hasRapidFire = rapidFireUntil > now;
   const hasMultiShot = multiShotUntil > now;
+  const hasLaser = laserUntil > now;
+  const hasTimeSlow = timeSlowUntil > now;
 
   if (gameState === 'gameOver') {
     return (
@@ -134,13 +139,18 @@ export default function GameUI() {
                       <div className="text-xs text-blue-400">Shield: {playerShield}</div>
                     </>
                   )}
+                  
+                  {/* Weapon Level */}
+                  {weaponLevel > 1 && (
+                    <div className="text-xs text-yellow-400">Weapon Lvl: {weaponLevel}</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Power-up Status */}
-          {(hasRapidFire || hasMultiShot) && (
+          {(hasRapidFire || hasMultiShot || hasLaser || hasTimeSlow) && (
             <div className="pointer-events-auto">
               <Card className="bg-black bg-opacity-50 border-gray-600">
                 <CardContent className="p-3">
@@ -154,6 +164,16 @@ export default function GameUI() {
                     {hasMultiShot && (
                       <div className="text-xs text-green-300">
                         Multi Shot: {Math.ceil((multiShotUntil - now) / 1000)}s
+                      </div>
+                    )}
+                    {hasLaser && (
+                      <div className="text-xs text-purple-300">
+                        Laser: {Math.ceil((laserUntil - now) / 1000)}s
+                      </div>
+                    )}
+                    {hasTimeSlow && (
+                      <div className="text-xs text-cyan-300">
+                        Time Slow: {Math.ceil((timeSlowUntil - now) / 1000)}s
                       </div>
                     )}
                   </div>

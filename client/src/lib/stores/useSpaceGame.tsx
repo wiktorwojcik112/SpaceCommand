@@ -27,7 +27,7 @@ export interface Bullet {
 export interface PowerUp {
   id: string;
   position: [number, number, number];
-  type: 'rapidFire' | 'shield' | 'bomb' | 'multiShot';
+  type: 'rapidFire' | 'shield' | 'bomb' | 'multiShot' | 'laser' | 'timeSlow' | 'healthRestore' | 'weaponUpgrade';
   velocity: [number, number, number];
 }
 
@@ -65,6 +65,8 @@ interface SpaceGameState {
   // Power-up effects
   rapidFireUntil: number;
   multiShotUntil: number;
+  laserUntil: number;
+  timeSlowUntil: number;
   
   // Actions
   startGame: () => void;
@@ -126,6 +128,8 @@ export const useSpaceGame = create<SpaceGameState>()(
     // Power-up effects
     rapidFireUntil: 0,
     multiShotUntil: 0,
+    laserUntil: 0,
+    timeSlowUntil: 0,
     
     startGame: () => set({ 
       gameState: "playing",
@@ -142,6 +146,8 @@ export const useSpaceGame = create<SpaceGameState>()(
       particles: [],
       rapidFireUntil: 0,
       multiShotUntil: 0,
+      laserUntil: 0,
+      timeSlowUntil: 0,
       lastPlayerShot: 0
     }),
     
@@ -181,39 +187,44 @@ export const useSpaceGame = create<SpaceGameState>()(
       if (now - state.lastPlayerShot < fireRate) return {};
       
       const bullets: Bullet[] = [];
+      const hasLaser = state.laserUntil > now;
       const multiShot = state.multiShotUntil > now || state.weaponLevel >= 3;
+      const baseDamage = 20 + (state.weaponLevel * 5);
+      const laserDamage = baseDamage * 2; // Double damage for laser
+      const bulletVelocity = hasLaser ? 0.5 : 0.3; // Laser is faster
+      const bulletDamage = hasLaser ? laserDamage : baseDamage;
       
       if (multiShot) {
-        // Multi-shot
+        // Multi-shot (with or without laser enhancement)
         bullets.push({
           id: `bullet-${now}-0`,
           position: [state.playerPosition[0] - 0.3, state.playerPosition[1] + 0.5, state.playerPosition[2]],
-          velocity: [0, 0.3, 0],
+          velocity: [0, bulletVelocity, 0],
           isPlayerBullet: true,
-          damage: 20 + (state.weaponLevel * 5)
+          damage: bulletDamage
         });
         bullets.push({
           id: `bullet-${now}-1`,
           position: [state.playerPosition[0], state.playerPosition[1] + 0.5, state.playerPosition[2]],
-          velocity: [0, 0.3, 0],
+          velocity: [0, bulletVelocity, 0],
           isPlayerBullet: true,
-          damage: 20 + (state.weaponLevel * 5)
+          damage: bulletDamage
         });
         bullets.push({
           id: `bullet-${now}-2`,
           position: [state.playerPosition[0] + 0.3, state.playerPosition[1] + 0.5, state.playerPosition[2]],
-          velocity: [0, 0.3, 0],
+          velocity: [0, bulletVelocity, 0],
           isPlayerBullet: true,
-          damage: 20 + (state.weaponLevel * 5)
+          damage: bulletDamage
         });
       } else {
         // Single shot
         bullets.push({
           id: `bullet-${now}`,
           position: [state.playerPosition[0], state.playerPosition[1] + 0.5, state.playerPosition[2]],
-          velocity: [0, 0.3, 0],
+          velocity: [0, bulletVelocity, 0],
           isPlayerBullet: true,
-          damage: 20 + (state.weaponLevel * 5)
+          damage: bulletDamage
         });
       }
       
@@ -299,6 +310,18 @@ export const useSpaceGame = create<SpaceGameState>()(
           break;
         case 'multiShot':
           updates.multiShotUntil = now + 15000; // 15 seconds
+          break;
+        case 'laser':
+          updates.laserUntil = now + 12000; // 12 seconds
+          break;
+        case 'timeSlow':
+          updates.timeSlowUntil = now + 8000; // 8 seconds
+          break;
+        case 'healthRestore':
+          updates.playerHealth = Math.min(state.playerMaxHealth, state.playerHealth + 50);
+          break;
+        case 'weaponUpgrade':
+          updates.weaponLevel = Math.min(5, state.weaponLevel + 1);
           break;
       }
       

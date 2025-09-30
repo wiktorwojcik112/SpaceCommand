@@ -39,6 +39,7 @@ export default function SpaceInvaders() {
     playerPosition,
     playerHealth,
     lives,
+    timeSlowUntil,
     pauseGame,
     resumeGame,
     movePlayer,
@@ -106,29 +107,36 @@ export default function SpaceInvaders() {
       playerShoot();
     }
 
-    // Update bullets
-    const updatedBullets = bullets.map(bullet => ({
-      ...bullet,
-      position: [
-        bullet.position[0] + bullet.velocity[0],
-        bullet.position[1] + bullet.velocity[1],
-        bullet.position[2] + bullet.velocity[2]
-      ] as [number, number, number]
-    })).filter(bullet => !isOutOfBounds(bullet.position));
+    // Time slow effect
+    const timeSlowActive = timeSlowUntil > now;
+    const timeSlowMultiplier = timeSlowActive ? 0.5 : 1;
+    
+    // Update bullets (apply time slow to enemy bullets)
+    const updatedBullets = bullets.map(bullet => {
+      const velocityMultiplier = !bullet.isPlayerBullet ? timeSlowMultiplier : 1;
+      return {
+        ...bullet,
+        position: [
+          bullet.position[0] + bullet.velocity[0] * velocityMultiplier,
+          bullet.position[1] + bullet.velocity[1] * velocityMultiplier,
+          bullet.position[2] + bullet.velocity[2] * velocityMultiplier
+        ] as [number, number, number]
+      };
+    }).filter(bullet => !isOutOfBounds(bullet.position));
 
     updateBullets(updatedBullets);
-
+    
     // Update enemies
     const updatedEnemies = enemies.map(enemy => {
       let newEnemy = { ...enemy };
       
-      // Move enemy
-      newEnemy.position[0] += newEnemy.direction * newEnemy.speed;
+      // Move enemy (with time slow effect)
+      newEnemy.position[0] += newEnemy.direction * newEnemy.speed * timeSlowMultiplier;
       
       // Check if enemy hit edge
       if (newEnemy.position[0] <= GAME_BOUNDS.LEFT || newEnemy.position[0] >= GAME_BOUNDS.RIGHT) {
         newEnemy.direction *= -1;
-        newEnemy.position[1] -= 0.3; // Move down
+        newEnemy.position[1] -= 0.3 * timeSlowMultiplier; // Move down (with time slow effect)
       }
       
       // Boss phase transitions
@@ -254,7 +262,7 @@ export default function SpaceInvaders() {
             
             // Random power-up spawn
             if (Math.random() < 0.15) {
-              const powerUpTypes = ['rapidFire', 'shield', 'bomb', 'multiShot'];
+              const powerUpTypes = ['rapidFire', 'shield', 'bomb', 'multiShot', 'laser', 'timeSlow', 'healthRestore', 'weaponUpgrade'];
               const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
               addPowerUp({
                 id: `powerup-${now}-${enemy.id}`,

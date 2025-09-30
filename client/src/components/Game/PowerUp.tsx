@@ -46,6 +46,26 @@ export default function PowerUp({ powerUp }: PowerUpProps) {
           color: "#88ff44",
           icon: "M"
         };
+      case 'laser':
+        return {
+          color: "#ff44ff",
+          icon: "L"
+        };
+      case 'timeSlow':
+        return {
+          color: "#44ffff",
+          icon: "T"
+        };
+      case 'healthRestore':
+        return {
+          color: "#44ff88",
+          icon: "H"
+        };
+      case 'weaponUpgrade':
+        return {
+          color: "#ffff44",
+          icon: "W"
+        };
     }
   };
 
